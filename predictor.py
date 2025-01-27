@@ -6,7 +6,6 @@ import base64
 import pandas as pd
 
 import matplotlib
-
 matplotlib.use("Agg")  # Set non-GUI backend before importing pyplot
 import matplotlib.pyplot as plt
 
@@ -14,17 +13,22 @@ from xgboost import XGBRegressor
 from rdkit import Chem
 from rdkit.Chem import Draw
 import subprocess
-
 from utils import *
 
 pd.options.mode.chained_assignment = None  # Suppress the SettingWithCopyWarning
 
 
 def get_sdf_file(smiles):
+    '''
+    Create .sdf file and temporarily save as /temp/temp.sdf 
+    '''
     mol = Chem.MolFromSmiles(smiles)
 
     if mol is None:
         raise ValueError("Invalid SMILES string")
+    
+    if not any(atom.GetSymbol() == "F" for atom in mol.GetAtoms()):
+        raise ValueError("No F in the molecule")
 
     # Transform SMILES to canonical SMILES
     smiles = Chem.MolToSmiles(mol)
@@ -52,6 +56,10 @@ def get_sdf_file(smiles):
 
 
 def get_descriptors_and_neighbors_info():
+    '''
+    Use java tool, which will use the /temp/temp.sdf file to generate the temp_Nighbors.csv and temp_Descriptors.csv and store them 
+    in /temp/ 
+    '''
     # Define the Java directory
     java_dir = os.path.join("external", "JAVAget_3D_feature_set", "java")
 
@@ -78,6 +86,9 @@ def get_descriptors_and_neighbors_info():
 
 # +
 def get_test_fluorianted_compounds_info(smiles, train_dataset):
+    '''
+    Create a dataframe containing Code, SMILES, and atom indexs as columns.
+    '''
     if smiles in train_dataset["SMILES"].values:
         dataset = train_dataset[train_dataset["SMILES"] == smiles]
         if len(dataset) > 1:
@@ -94,6 +105,9 @@ def get_test_fluorianted_compounds_info(smiles, train_dataset):
 
 
 def get_features_table(dataset):
+    '''
+    Create a dataframe with each F atom as a row and 3D atomic featureas from 5 spatially neighboring atoms as table content.
+    '''
     neighbor_num = 5
     if dataset["Code"].values == ["temp"]:
         file_path = os.path.join("temp")
@@ -141,6 +155,9 @@ def get_HOSE_prediction_results_table(
 def get_XGBoost_model_results(
     best_model_file_path, columns_file_path, fluorinated_compounds_w_Desc
 ):
+    '''
+    Use the best model to predict
+    '''
 
     best_model = XGBRegressor()
     best_model.load_model(best_model_file_path)
@@ -330,6 +347,7 @@ def display_results(results):
             bbox=dict(facecolor="white", edgecolor="white", alpha=0.9),
         )
 
+    
         plot_img = io.BytesIO()
         plt.savefig(plot_img, format="png")
         plt.close(fig)  # Close figure to free memory
@@ -360,10 +378,7 @@ def display_results(results):
         table_data = details.to_html(classes="table table-striped", index=False)
 
         # Check if the molecular structure image exists and encode it if necessary
-        file_path = os.path.join(
-            "temp"
-        )  # Ensure the path is correct for your environment
-        structure_image_path = os.path.join(file_path, "temp.png")
+        structure_image_path = os.path.join("temp", "temp.png")
         if os.path.exists(structure_image_path):
             with open(structure_image_path, "rb") as structure_file:
                 structure_base64 = base64.b64encode(structure_file.read()).decode(

@@ -19,10 +19,26 @@
             <button type="submit" class="btn btn-primary">Predict</button>
         </form>
 
+        {% if error_message %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Error:</strong> {{ error_message }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        {% endif %}
+
+
         {% if plot_data %}
             <!-- Display the prediction plot -->
             <h2 class="mt-5">Prediction Plot</h2>
             <img src="data:image/png;base64,{{ plot_data }}" alt="Prediction Plot" class="img-fluid">
+        {% endif %}
+        
+        {% if structure_image_base64 %}
+            <!-- Display the molecular structure if available -->
+            <h2 class="mt-5">Molecular Structure</h2>
+            <img src="data:image/png;base64,{{ structure_image_base64 }}" alt="Molecular Structure" class="img-fluid">
         {% endif %}
 
         {% if table_data %}
@@ -32,12 +48,7 @@
                 {{ table_data|safe }}
             </div>
         {% endif %}
-
-        {% if structure_image_base64 %}
-            <!-- Display the molecular structure if available -->
-            <h2 class="mt-5">Molecular Structure</h2>
-            <img src="data:image/png;base64,{{ structure_image_base64 }}" alt="Molecular Structure" class="img-fluid">
-        {% endif %}
+        
     </div>
     
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>

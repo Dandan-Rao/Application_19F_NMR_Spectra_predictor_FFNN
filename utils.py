@@ -417,103 +417,103 @@ def get_results_table(best_model, X, y):
     return compare
 
 
-def testRidgeCVPerformance(
-    dataset, neighbor_num, RidgeCVmodel_path, scaler_path, imputer_path, columns_path
-):
-    with open(RidgeCVmodel_path, "rb") as file:
-        best_model = pickle.load(file)
+# def testRidgeCVPerformance(
+#     dataset, neighbor_num, RidgeCVmodel_path, scaler_path, imputer_path, columns_path
+# ):
+#     with open(RidgeCVmodel_path, "rb") as file:
+#         best_model = pickle.load(file)
 
-    with open(scaler_path, "rb") as file:
-        scaler = pickle.load(file)
+#     with open(scaler_path, "rb") as file:
+#         scaler = pickle.load(file)
 
-    with open(imputer_path, "rb") as file:
-        imputer = pickle.load(file)
+#     with open(imputer_path, "rb") as file:
+#         imputer = pickle.load(file)
 
-    with open(columns_path, "rb") as file:
-        train_columns = pickle.load(file)
+#     with open(columns_path, "rb") as file:
+#         train_columns = pickle.load(file)
 
-    # convert values to numeric values when possible
-    dataset = Combine_descriptors(
-        dataset, neighbor_num=neighbor_num, with_additional_info=True
-    )
-    #     dataset = dataset.rename_axis('atomCode_fluorinated_compoundsCode', inplace = True)
-    dataset.apply(convert_to_numeric)
+#     # convert values to numeric values when possible
+#     dataset = Combine_descriptors(
+#         dataset, neighbor_num=neighbor_num, with_additional_info=True
+#     )
+#     #     dataset = dataset.rename_axis('atomCode_fluorinated_compoundsCode', inplace = True)
+#     dataset.apply(convert_to_numeric)
 
-    # drop rows with NaN values in the 'NMR_Peaks' column
-    dataset_dropNaN = dataset.dropna(subset=["NMR_Peaks"])
+#     # drop rows with NaN values in the 'NMR_Peaks' column
+#     dataset_dropNaN = dataset.dropna(subset=["NMR_Peaks"])
 
-    dataset_dropNaN = dataset_dropNaN[train_columns]
-    dataset_dropNaN_imputed = imputer.transform(dataset_dropNaN)
+#     dataset_dropNaN = dataset_dropNaN[train_columns]
+#     dataset_dropNaN_imputed = imputer.transform(dataset_dropNaN)
 
-    dataset_dropNaN_imputed = pd.DataFrame(
-        dataset_dropNaN_imputed,
-        columns=dataset_dropNaN.columns,
-        index=dataset_dropNaN.index,
-    )
+#     dataset_dropNaN_imputed = pd.DataFrame(
+#         dataset_dropNaN_imputed,
+#         columns=dataset_dropNaN.columns,
+#         index=dataset_dropNaN.index,
+#     )
 
-    y = dataset_dropNaN_imputed["NMR_Peaks"]
-    X = dataset_dropNaN_imputed.drop(["NMR_Peaks"], axis=1)
+#     y = dataset_dropNaN_imputed["NMR_Peaks"]
+#     X = dataset_dropNaN_imputed.drop(["NMR_Peaks"], axis=1)
 
-    X_scaled = scaler.transform(X)
+#     X_scaled = scaler.transform(X)
 
-    X_scaled = pd.DataFrame(X_scaled)
-    X_scaled.columns = X.columns
-    X_scaled.index = X.index
+#     X_scaled = pd.DataFrame(X_scaled)
+#     X_scaled.columns = X.columns
+#     X_scaled.index = X.index
 
-    results_table = get_results_table(best_model=best_model, X=X_scaled, y=y)
-    plot_prediction_performance(results_table, figure_title=None)
-    show_results_scatter(results_table, figure_title=None)
-    return results_table
+#     results_table = get_results_table(best_model=best_model, X=X_scaled, y=y)
+#     plot_prediction_performance(results_table, figure_title=None)
+#     show_results_scatter(results_table, figure_title=None)
+#     return results_table
 
 
-def testRidgePerformance2DFeatures(
-    dataset, num_spheres, RidgeCVmodel_path, scaler_path, imputer_path, columns_path
-):
-    with open(RidgeCVmodel_path, "rb") as file:
-        best_model = pickle.load(file)
+# def testRidgePerformance2DFeatures(
+#     dataset, num_spheres, RidgeCVmodel_path, scaler_path, imputer_path, columns_path
+# ):
+#     with open(RidgeCVmodel_path, "rb") as file:
+#         best_model = pickle.load(file)
 
-    with open(scaler_path, "rb") as file:
-        scaler = pickle.load(file)
+#     with open(scaler_path, "rb") as file:
+#         scaler = pickle.load(file)
 
-    with open(imputer_path, "rb") as file:
-        imputer = pickle.load(file)
+#     with open(imputer_path, "rb") as file:
+#         imputer = pickle.load(file)
 
-    with open(columns_path, "rb") as file:
-        train_columns = pickle.load(file)
+#     with open(columns_path, "rb") as file:
+#         train_columns = pickle.load(file)
 
-    get_2d_descriptors = getAtomicDescriptorsFrom2DNeighbors()
-    content = get_2d_descriptors.getDescriptorsFromDataset(dataset, num_spheres)
+#     get_2d_descriptors = getAtomicDescriptorsFrom2DNeighbors()
+#     content = get_2d_descriptors.getDescriptorsFromDataset(dataset, num_spheres)
 
-    # Convert all columns in df to numeric where possible, keeping non-numeric values unchanged
-    content = content.apply(pd.to_numeric, errors="ignore")
+#     # Convert all columns in df to numeric where possible, keeping non-numeric values unchanged
+#     content = content.apply(pd.to_numeric, errors="ignore")
 
-    # Conver column names to 'string'
-    content.columns = content.columns.astype(str)
+#     # Conver column names to 'string'
+#     content.columns = content.columns.astype(str)
 
-    # Drop rows with NaN values in the 'NMR_Peaks' column
-    content = content.dropna(subset=["NMR_Peaks"])
+#     # Drop rows with NaN values in the 'NMR_Peaks' column
+#     content = content.dropna(subset=["NMR_Peaks"])
 
-    # Delete columns not shown in the train dataset
-    content = content[train_columns]
-    content_imputed = imputer.transform(content)
+#     # Delete columns not shown in the train dataset
+#     content = content[train_columns]
+#     content_imputed = imputer.transform(content)
 
-    content_imputed = pd.DataFrame(
-        content_imputed, columns=content.columns, index=content.index
-    )
+#     content_imputed = pd.DataFrame(
+#         content_imputed, columns=content.columns, index=content.index
+#     )
 
-    y = content_imputed["NMR_Peaks"]
-    X = content_imputed.drop(["NMR_Peaks"], axis=1)
+#     y = content_imputed["NMR_Peaks"]
+#     X = content_imputed.drop(["NMR_Peaks"], axis=1)
 
-    X_scaled = scaler.transform(X)
+#     X_scaled = scaler.transform(X)
 
-    X_scaled = pd.DataFrame(X_scaled)
-    X_scaled.columns = X.columns
-    X_scaled.index = X.index
+#     X_scaled = pd.DataFrame(X_scaled)
+#     X_scaled.columns = X.columns
+#     X_scaled.index = X.index
 
-    results_table = get_results_table(best_model=best_model, X=X_scaled, y=y)
-    plot_prediction_performance(results_table, figure_title=None)
-    show_results_scatter(results_table, figure_title=None)
-    return results_table
+#     results_table = get_results_table(best_model=best_model, X=X_scaled, y=y)
+#     plot_prediction_performance(results_table, figure_title=None)
+#     show_results_scatter(results_table, figure_title=None)
+#     return results_table
 
 
 def plot_prediction_performance(results_table, figure_title=None):
@@ -644,63 +644,63 @@ all_neighbor_atoms_list = [
 ]
 
 
-def testModelPerformance_XGBoost_3DNeighborAtoms(
-    best_model_file_path, columns_file_path, neighbor_num, test_dataset
-):
-    """
-    Function
-    ----------
-    Applies the optimized model to the validation or test dataset, outputs the prediction results in a DataFrame,
-    and visualizes the prediction performance using both a line plot and a scatter plot.
+# def testModelPerformance_XGBoost_3DNeighborAtoms(
+#     best_model_file_path, columns_file_path, neighbor_num, test_dataset
+# ):
+#     """
+#     Function
+#     ----------
+#     Applies the optimized model to the validation or test dataset, outputs the prediction results in a DataFrame,
+#     and visualizes the prediction performance using both a line plot and a scatter plot.
 
-    Parameters
-    ----------
-    best_model_file_path: Path to the .json file containing the optimized model.
+#     Parameters
+#     ----------
+#     best_model_file_path: Path to the .json file containing the optimized model.
 
-    columns_file_path: Path to the .pkl file containing the column names of the dataset used for modeling.
+#     columns_file_path: Path to the .pkl file containing the column names of the dataset used for modeling.
 
-    test_dataset: A DataFrame containing information about fluorinated compounds and their corresponding 19F NMR shift values.
+#     test_dataset: A DataFrame containing information about fluorinated compounds and their corresponding 19F NMR shift values.
 
-    Output
-    ----------
-    results_table: A DataFrame containing the prediction results for the test_dataset.
-    """
-    best_model = XGBRegressor()
-    best_model.load_model(best_model_file_path)
+#     Output
+#     ----------
+#     results_table: A DataFrame containing the prediction results for the test_dataset.
+#     """
+#     best_model = XGBRegressor()
+#     best_model.load_model(best_model_file_path)
 
-    with open(columns_file_path, "rb") as f:
-        train_cols = pickle.load(f)
+#     with open(columns_file_path, "rb") as f:
+#         train_cols = pickle.load(f)
 
-    # Step 1. Combine NMR shift values of F atoms with its features
-    fluorinated_compounds_w_Desc = Combine_descriptors(
-        test_dataset, neighbor_num=neighbor_num
-    )
+#     # Step 1. Combine NMR shift values of F atoms with its features
+#     fluorinated_compounds_w_Desc = Combine_descriptors(
+#         test_dataset, neighbor_num=neighbor_num
+#     )
 
-    # Step 2. Only keep columns that were used in the dataset for modeling while delete other columns
-    fluorinated_compounds_w_Desc = fluorinated_compounds_w_Desc[train_cols]
+#     # Step 2. Only keep columns that were used in the dataset for modeling while delete other columns
+#     fluorinated_compounds_w_Desc = fluorinated_compounds_w_Desc[train_cols]
 
-    # For validation purpose, drop rows with NaN values in the 'NMR_Peaks' column
-    fluorinated_compounds_w_Desc = fluorinated_compounds_w_Desc.dropna(
-        subset=["NMR_Peaks"]
-    )
+#     # For validation purpose, drop rows with NaN values in the 'NMR_Peaks' column
+#     fluorinated_compounds_w_Desc = fluorinated_compounds_w_Desc.dropna(
+#         subset=["NMR_Peaks"]
+#     )
 
-    # Get y values
-    y = fluorinated_compounds_w_Desc["NMR_Peaks"]
+#     # Get y values
+#     y = fluorinated_compounds_w_Desc["NMR_Peaks"]
 
-    # Drop non-numeric columns from X
-    orig_features = ["NMR_Peaks"]
-    X = fluorinated_compounds_w_Desc.drop(orig_features, axis=1)
+#     # Drop non-numeric columns from X
+#     orig_features = ["NMR_Peaks"]
+#     X = fluorinated_compounds_w_Desc.drop(orig_features, axis=1)
 
-    # Ensure all values in the X are numerical values
-    X = X.apply(pd.to_numeric)
+#     # Ensure all values in the X are numerical values
+#     X = X.apply(pd.to_numeric)
 
-    results_table = get_results_table(best_model=best_model, X=X, y=y)
+#     results_table = get_results_table(best_model=best_model, X=X, y=y)
 
-    plot_prediction_performance(results_table, figure_title=None)
+#     plot_prediction_performance(results_table, figure_title=None)
 
-    show_results_scatter(results_table, figure_title=None)
+#     show_results_scatter(results_table, figure_title=None)
 
-    return results_table
+#     return results_table
 
 
 # -
@@ -1201,37 +1201,37 @@ class getAtomicDescriptorsFrom2DNeighbors:
             )
         return fluorinated_compounds_content
 
-    def testXGBoost2DModelPerformance(
-        self,
-        best_model_file_path,
-        dataset,
-        num_spheres,
-        feature_list=[
-            "mass",
-            "hybridization",
-            "isAromatic",
-            "degree",
-            "valence",
-            "explicit_valence",
-            "isInRing",
-        ],
-    ):
-        best_model = XGBRegressor()
-        best_model.load_model(best_model_file_path)
+    # def examXGBoost2DModelPerformance(
+    #     self,
+    #     best_model_file_path,
+    #     dataset,
+    #     num_spheres,
+    #     feature_list=[
+    #         "mass",
+    #         "hybridization",
+    #         "isAromatic",
+    #         "degree",
+    #         "valence",
+    #         "explicit_valence",
+    #         "isInRing",
+    #     ],
+    # ):
+    #     best_model = XGBRegressor()
+    #     best_model.load_model(best_model_file_path)
 
-        get_2d_descriptors = getAtomicDescriptorsFrom2DNeighbors()
-        vali_content = get_2d_descriptors.getDescriptorsFromDataset(
-            dataset, num_spheres, feature_list
-        )
+    #     get_2d_descriptors = getAtomicDescriptorsFrom2DNeighbors()
+    #     vali_content = get_2d_descriptors.getDescriptorsFromDataset(
+    #         dataset, num_spheres, feature_list
+    #     )
 
-        vali_content = vali_content.dropna(subset=["NMR_Peaks"])
-        y = vali_content["NMR_Peaks"]
-        X = vali_content.drop(["NMR_Peaks"], axis=1)
+    #     vali_content = vali_content.dropna(subset=["NMR_Peaks"])
+    #     y = vali_content["NMR_Peaks"]
+    #     X = vali_content.drop(["NMR_Peaks"], axis=1)
 
-        results_table = get_results_table(best_model=best_model, X=X, y=y)
-        plot_prediction_performance(results_table, figure_title=None)
-        show_results_scatter(results_table, figure_title=None)
-        return results_table
+    #     results_table = get_results_table(best_model=best_model, X=X, y=y)
+    #     plot_prediction_performance(results_table, figure_title=None)
+    #     show_results_scatter(results_table, figure_title=None)
+    #     return results_table
 
 
 ## Generate HOSE code with different radius
@@ -1258,8 +1258,17 @@ def getHoseCodeContent(data, max_radius=6):
     for _, row in data.iterrows():
         smiles = row["SMILES"]
         fluorinated_compounds = row["Code"]
+
         mol = Chem.MolFromSmiles(smiles)
-        output_file_path = f"..//temp//{fluorinated_compounds}.mol"
+        if mol is None:
+            raise ValueError("Invalid SMILES string")
+        # Transform SMILES to canonical SMILES
+        smiles = Chem.MolToSmiles(mol)
+        mol = Chem.MolFromSmiles(smiles)
+        mol = Transform_SMILE_to_3D_conformation(smiles)
+
+        output_file_path = os.path.join("temp", f"{fluorinated_compounds}.mol")
+
         Chem.MolToMolFile(mol, output_file_path)
         wedgemap = create_wedgemap(output_file_path)
         if os.path.exists(output_file_path):
