@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NMR 19F Spectrum Predictor</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-5"><sup>19</sup>F NMR Spectrum Predictor</h1>
+
+        {% if error_message %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Error:</strong> {{ error_message }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        {% endif %}
+
+
+        {% if plot_data %}
+            <!-- Display the prediction plot -->
+            <h2 class="mt-5">Prediction Plot</h2>
+            <img src="data:image/png;base64,{{ plot_data }}" alt="Prediction Plot" class="img-fluid">
+        {% endif %}
+        
+        {% if structure_image_base64 %}
+            <!-- Display the molecular structure if available -->
+            <h2 class="mt-5">Molecular Structure</h2>
+            <img src="data:image/png;base64,{{ structure_image_base64 }}" alt="Molecular Structure" class="img-fluid">
+        {% endif %}
+
+        {% if table_data %}
+            <!-- Display the result table -->
+            <h2 class="mt-5">Prediction Results</h2>
+            <div class="table-responsive">
+                {{ table_data|safe }}
+            </div>
+        {% endif %}
+        
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
