@@ -37,7 +37,7 @@ jobs:
     
     - name: Run Makefile commands
       run: |
-        make format ß
+        make format
         
     - name: Run app.py to check for errors
       run: |
