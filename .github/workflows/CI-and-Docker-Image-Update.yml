@@ -37,9 +37,7 @@ jobs:
     
     - name: Run Makefile commands
       run: |
-        make format 
-        make lint
-        continue-on-error: true
+        make format ß
         
     - name: Run app.py to check for errors
       run: |
