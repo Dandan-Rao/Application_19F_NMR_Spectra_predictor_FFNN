@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+# Make sure you're running flask.py in a separate terminal first
+# Try run  $ ./flask.py "C(C(F)(F)F)O"
+# This is only for test. Since the flask.py return images.
+# These base64 image data looks like a huge jumble of letters, numbers, and symbols.
+
 import requests
 import click
 from flask import render_template

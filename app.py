@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from flask import Flask, request, render_template
 from predictor import predictor  # Make sure to import the predictor function
+import os
 
 app = Flask(__name__)  # Corrected: use __name__ instead of name
 
@@ -16,7 +17,7 @@ def index():
             )
 
         try:
-            # Call the predictor function with the SMILES input
+            # Call the predictor function with the SMILES input            
             plot_data, table_data, structure_image_base64 = predictor(smiles)
             return render_template(
                 "index.html",
@@ -37,4 +38,4 @@ def index():
 
 
 if __name__ == "__main__":  # Corrected: use __name__ == "__main__"
-    app.run(debug=True, host="0.0.0.0", port=5002)
+    app.run(debug=False, host="0.0.0.0", port=5002)

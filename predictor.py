@@ -323,7 +323,7 @@ def display_results(results):
         # Add confidence level information in the second subplot (ax2)
         confidence_data = {
             "Level": [6, 5, 4, 3, 2, 1],
-            "Error": [0.89, 1.05, 1.53, 5.05, 6.91, 11.88],
+            "Error": [0.9, 1.0, 1.2, 6.6, 9.4, 18.6],
         }
 
         ax2.axis("off")
@@ -399,7 +399,7 @@ def display_results(results):
 def predictor(
     smiles,
     train_fluorinated_compounds_file_path=os.path.join(
-        "dataset", "All fluorinated_compounds.csv"
+        "dataset", "Processed_fluorinated_compounds_19F_NMR_spectra_data.csv"
     ),
     HOSE_Code_database_file_path=os.path.join(
         "model", "HOSE_Code_database_from all fluorinated compounds.csv"
@@ -409,6 +409,8 @@ def predictor(
     ),
 ):
     try:
+        # Transform ionic SMILES to neutral SMILES, and transform SMILES to canonical SMILES
+        smiles = ionic_to_neutral_smiles(smiles)
         # Generate sdf file from SMILES
         get_sdf_file(smiles)
         # Generate CDK descriptors and Neighbors information
@@ -449,8 +451,20 @@ def predictor(
                 ensembled_XGBoost_and_HOSE.append(row["HOSE_model_prediction"])
             else:
                 ensembled_XGBoost_and_HOSE.append(row["XGBoost_model_prediction"])
-
         combined_prediction["ensembeled_model"] = ensembled_XGBoost_and_HOSE
+        
+        # Identify atoms in same environment, and average their predictions
+        temp_dataset = {'Code': ['temp'], 'SMILES': [smiles]}
+        for i in range(71):
+            temp_dataset[i] = None
+        temp_dataset = pd.DataFrame(temp_dataset, index=[0])
+        HOSE_codes = getHoseCodeContent(dataset)
+        ensemble_temp = combined_prediction.merge(HOSE_codes.drop('NMR_Peaks', axis=1), left_index=True, right_index=True)
+        ensemble_temp_grouped = ensemble_temp.groupby([0, 1, 2, 3, 4, 5])['ensembeled_model'].transform('mean') # If HOSE codes with radii = 1~5 are the same, then average the predictions of the atoms
+        ensemble_temp['ensembeled_model'] = ensemble_temp_grouped
+        combined_prediction = ensemble_temp.drop([0, 1, 2, 3, 4, 5], axis=1)
+
+        # Calculate the error of the ensembled model
         combined_prediction["ensembeled_model_error"] = (
             combined_prediction["ensembeled_model"] - combined_prediction["actual"]
         )

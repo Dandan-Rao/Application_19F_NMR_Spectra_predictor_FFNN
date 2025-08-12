@@ -1,7 +1,15 @@
 #!/usr/bin/env python
+
+# After run in termian: $ ./build_fastapi.py
+# Open a web browser and go to the designated URL
+# Revise the URL by adding /docs to access the FastAPI documentation.
+# Follow the instructions to make a prediction.
+
 from fastapi import FastAPI, HTTPException
 from predictor import predictor  # Import predictor function
 from pydantic import BaseModel
+import uvicorn
+
 
 app = FastAPI()
 class PredictionResponse(BaseModel):
@@ -33,8 +41,6 @@ def predict(body: Body):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
     
-  
-
-# # Run the FastAPI server with Uvicorn
-# if __name__ == "__main__":
-#     uvicorn.run(app, host="127.0.0.1", port=5000, reload=True)
+# Run the FastAPI server with Uvicorn
+if __name__ == "__main__":
+    uvicorn.run("build_fastapi:app", host="127.0.0.1", port=5000, reload=True)

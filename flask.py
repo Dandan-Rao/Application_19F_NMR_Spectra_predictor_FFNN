@@ -1,8 +1,17 @@
 #!/usr/bin/env python
+# In terminal, run $ ./flask.py
+# Open a web browser and go to http://127.0.0.1:5000
+# Follow the instructions to make a prediction.
+
 from flask import Flask, request, jsonify, render_template
 from predictor import predictor
 
 app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return 'API is running! Add /predict/SMILES to the URL to make a prediction.  ' \
+           'Example: /predict/C(=O)(C(C(C(C(C(C(C(F)(F)F)(F)F)(F)F)(F)F)(F)F)(F)F)(F)F)O'
 
 @app.route('/predict', methods=['GET'])
 def index():
