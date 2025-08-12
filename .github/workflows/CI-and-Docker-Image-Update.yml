@@ -39,9 +39,10 @@ jobs:
       run: |
         make format
         
-    - name: Run app.py to check for errors
+    - name: Run app.py briefly to check for errors
       run: |
-          python ./app.py
+          timeout 5 python ./app.py
+
 
     - name: Login to Docker Hub
       uses: docker/login-action@v3
