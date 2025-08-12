@@ -6,7 +6,6 @@
 
 import requests
 import click
-from flask import render_template
 
 url = "http://127.0.0.1:5000/predict"
 
@@ -20,7 +19,7 @@ url = "http://127.0.0.1:5000/predict"
 def predict(smiles):
     """Predict the 19F NMR spectrum of a molecule given its SMILES string"""
     headers = {"Accept": "application/json"}  # Explicitly request JSON
-    response = requests.get(f"{url}/{smiles}", headers=headers)
+    response = requests.get(f"{url}/{smiles}", headers=headers, timeout=10)
     # Check if the response content is valid
 
     if response.status_code == 200:
