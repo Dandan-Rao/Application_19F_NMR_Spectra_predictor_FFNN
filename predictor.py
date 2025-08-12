@@ -6,6 +6,7 @@ import base64
 import pandas as pd
 
 import matplotlib
+
 matplotlib.use("Agg")  # Set non-GUI backend before importing pyplot
 import matplotlib.pyplot as plt
 
@@ -19,14 +20,14 @@ pd.options.mode.chained_assignment = None  # Suppress the SettingWithCopyWarning
 
 
 def get_sdf_file(smiles):
-    '''
-    Create .sdf file and temporarily save as /temp/temp.sdf 
-    '''
+    """
+    Create .sdf file and temporarily save as /temp/temp.sdf
+    """
     mol = Chem.MolFromSmiles(smiles)
 
     if mol is None:
         raise ValueError("Invalid SMILES string")
-    
+
     if not any(atom.GetSymbol() == "F" for atom in mol.GetAtoms()):
         raise ValueError("No F in the molecule")
 
@@ -56,10 +57,10 @@ def get_sdf_file(smiles):
 
 
 def get_descriptors_and_neighbors_info():
-    '''
-    Use java tool, which will use the /temp/temp.sdf file to generate the temp_Nighbors.csv and temp_Descriptors.csv and store them 
-    in /temp/ 
-    '''
+    """
+    Use java tool, which will use the /temp/temp.sdf file to generate the temp_Nighbors.csv and temp_Descriptors.csv and store them
+    in /temp/
+    """
     # Define the Java directory
     java_dir = os.path.join("external", "JAVAget_3D_feature_set", "java")
 
@@ -86,9 +87,9 @@ def get_descriptors_and_neighbors_info():
 
 # +
 def get_test_fluorianted_compounds_info(smiles, train_dataset):
-    '''
+    """
     Create a dataframe containing Code, SMILES, and atom indexs as columns.
-    '''
+    """
     if smiles in train_dataset["SMILES"].values:
         dataset = train_dataset[train_dataset["SMILES"] == smiles]
         if len(dataset) > 1:
@@ -105,9 +106,9 @@ def get_test_fluorianted_compounds_info(smiles, train_dataset):
 
 
 def get_features_table(dataset):
-    '''
+    """
     Create a dataframe with each F atom as a row and 3D atomic featureas from 5 spatially neighboring atoms as table content.
-    '''
+    """
     neighbor_num = 5
     if dataset["Code"].values == ["temp"]:
         file_path = os.path.join("temp")
@@ -155,9 +156,9 @@ def get_HOSE_prediction_results_table(
 def get_XGBoost_model_results(
     best_model_file_path, columns_file_path, fluorinated_compounds_w_Desc
 ):
-    '''
+    """
     Use the best model to predict
-    '''
+    """
 
     best_model = XGBRegressor()
     best_model.load_model(best_model_file_path)
@@ -347,7 +348,6 @@ def display_results(results):
             bbox=dict(facecolor="white", edgecolor="white", alpha=0.9),
         )
 
-    
         plot_img = io.BytesIO()
         plt.savefig(plot_img, format="png")
         plt.close(fig)  # Close figure to free memory
@@ -452,16 +452,22 @@ def predictor(
             else:
                 ensembled_XGBoost_and_HOSE.append(row["XGBoost_model_prediction"])
         combined_prediction["ensembeled_model"] = ensembled_XGBoost_and_HOSE
-        
+
         # Identify atoms in same environment, and average their predictions
-        temp_dataset = {'Code': ['temp'], 'SMILES': [smiles]}
+        temp_dataset = {"Code": ["temp"], "SMILES": [smiles]}
         for i in range(71):
             temp_dataset[i] = None
         temp_dataset = pd.DataFrame(temp_dataset, index=[0])
         HOSE_codes = getHoseCodeContent(dataset)
-        ensemble_temp = combined_prediction.merge(HOSE_codes.drop('NMR_Peaks', axis=1), left_index=True, right_index=True)
-        ensemble_temp_grouped = ensemble_temp.groupby([0, 1, 2, 3, 4, 5])['ensembeled_model'].transform('mean') # If HOSE codes with radii = 1~5 are the same, then average the predictions of the atoms
-        ensemble_temp['ensembeled_model'] = ensemble_temp_grouped
+        ensemble_temp = combined_prediction.merge(
+            HOSE_codes.drop("NMR_Peaks", axis=1), left_index=True, right_index=True
+        )
+        ensemble_temp_grouped = ensemble_temp.groupby([0, 1, 2, 3, 4, 5])[
+            "ensembeled_model"
+        ].transform(
+            "mean"
+        )  # If HOSE codes with radii = 1~5 are the same, then average the predictions of the atoms
+        ensemble_temp["ensembeled_model"] = ensemble_temp_grouped
         combined_prediction = ensemble_temp.drop([0, 1, 2, 3, 4, 5], axis=1)
 
         # Calculate the error of the ensembled model

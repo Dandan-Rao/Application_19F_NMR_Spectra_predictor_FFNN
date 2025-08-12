@@ -25,6 +25,7 @@ sys.path.append(".")
 from hosegen import HoseGenerator
 from hosegen.geometry import *
 
+
 # Transform the column names of the DataFrame to integers where possible and keep them as strings otherwise
 def convert_column_name(name):
     try:
@@ -39,43 +40,46 @@ def canonical_smiles(smiles):
     smiles = [Chem.MolToSmiles(mol) for mol in mols]
     return smiles
 
+
 def ionic_to_neutral_smiles(ionic_smiles):
     """
     Convert ionic SMILES to non-ionic (neutral) format.
-    
+
     Args:
         ionic_smiles (str): SMILES string in ionic format
-        
+
     Returns:
         str: SMILES string in non-ionic format
     """
     # Parse the SMILES string
     mol = Chem.MolFromSmiles(ionic_smiles)
-    
+
     if mol is None:
         return "Error: Invalid SMILES string"
-    
+
     # Get the largest fragment (usually the main molecule without counterions)
     frags = Chem.GetMolFrags(mol, asMols=True)
-    
+
     # Find the largest fragment by number of atoms
     largest_frag = max(frags, key=lambda m: m.GetNumAtoms())
-    
+
     # For the largest fragment, find any charged atoms
     for atom in largest_frag.GetAtoms():
         # If there's a negative oxygen (like [O-]), make it neutral
-        if atom.GetSymbol() == 'O' and atom.GetFormalCharge() == -1:
+        if atom.GetSymbol() == "O" and atom.GetFormalCharge() == -1:
             atom.SetFormalCharge(0)
             # Increase implicit H count by 1 to neutralize
             atom.SetNumExplicitHs(atom.GetNumExplicitHs() + 1)
-    
+
     # Remove any existing explicit hydrogens and re-add them correctly
     largest_frag = Chem.RemoveHs(largest_frag)
     largest_frag = Chem.AddHs(largest_frag)
-    
+
     # Convert back to SMILES (canonicalized)
-    non_ionic_smiles = Chem.MolToSmiles(largest_frag, isomericSmiles=True, canonical=True)
-    
+    non_ionic_smiles = Chem.MolToSmiles(
+        largest_frag, isomericSmiles=True, canonical=True
+    )
+
     # Transform to canonical SMILES
     mol = Chem.MolFromSmiles(non_ionic_smiles)
     non_ionic_smiles = Chem.MolToSmiles(mol)

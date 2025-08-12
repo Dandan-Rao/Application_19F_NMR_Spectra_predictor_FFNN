@@ -12,17 +12,22 @@ import uvicorn
 
 
 app = FastAPI()
+
+
 class PredictionResponse(BaseModel):
     plot_data: str  # Base64-encoded plot image
     table_data: str  # HTML table
     structure_image_base64: str  # Base64-encoded structure image
 
+
 class Body(BaseModel):
     txt: str
+
 
 @app.get("/")
 def root():
     return {"message": "Hello World"}
+
 
 @app.post("/predict")
 def predict(body: Body):
@@ -40,7 +45,8 @@ def predict(body: Body):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
-    
+
+
 # Run the FastAPI server with Uvicorn
 if __name__ == "__main__":
     uvicorn.run("build_fastapi:app", host="127.0.0.1", port=5000, reload=True)
