@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from flask_example import Flask, request, render_template
+from flask import Flask, request, render_template
 from predictor import predictor  # Make sure to import the predictor function
 
 app = Flask(__name__)  # Corrected: use __name__ instead of name

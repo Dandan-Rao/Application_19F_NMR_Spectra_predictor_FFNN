@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-# In terminal, run $ ./flask.py
+# In terminal, run $ ./flask_example.py
 # Open a web browser and go to http://127.0.0.1:5000
 # Follow the instructions to make a prediction.
 
-from flask_example import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template
 from predictor import predictor
 
 app = Flask(__name__)

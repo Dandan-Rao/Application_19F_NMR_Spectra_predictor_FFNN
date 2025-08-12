@@ -9,9 +9,9 @@ from sklearn.metrics import r2_score
 import math
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.impute import KNNImputer
-from xgboost import XGBRegressor
-from rdkit import Chem
-from rdkit.Chem import AllChem
+# from xgboost import XGBRegressor
+# from rdkit import Chem
+# from rdkit.Chem import AllChem
 
 random_state = 1
 
