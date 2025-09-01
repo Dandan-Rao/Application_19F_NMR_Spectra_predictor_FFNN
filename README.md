@@ -1,26 +1,6 @@
 # NMR 19F Spectrum Predictor
 This application predicts the 19F NMR spectrum, the 19F NMR shifts for each fluorine atom in a molecule, and generates a molecular structure image based on a SMILES input string.
 
-# Prerequisites
-Before running the application, ensure you have the following installed:
-
-## Python
-- Install the required dependencies:
-  ```bash
-  make install
-  ```
-
-## Java
-- Ensure that Java is installed. This application is tested with:
-    ```
-    openjdk version "23.0.2"
-    ```
-
-## MATLAB
-- MATLAB is required for some computations. This application is tested with:
-    ```
-    Version: R2021b
-    ```
 
 # Launching the Application
 ## 1. Start the Flask web application by running the following in the terminal:

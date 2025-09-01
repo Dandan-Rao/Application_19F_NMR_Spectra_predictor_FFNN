@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# After run in termian: $ ./build_fastapi.py
+# In terminal: $ ./build_fastapi.py
 # Open a web browser and go to the designated URL
 # Revise the URL by adding /docs to access the FastAPI documentation.
 # Follow the instructions to make a prediction.

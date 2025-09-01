@@ -10,13 +10,15 @@ import matplotlib
 matplotlib.use("Agg")  # Set non-GUI backend before importing pyplot
 import matplotlib.pyplot as plt
 
-from xgboost import XGBRegressor
 from rdkit import Chem
 from rdkit.Chem import Draw
-import subprocess
 from utils import *
 
+from tensorflow.keras.models import load_model
+
 pd.options.mode.chained_assignment = None  # Suppress the SettingWithCopyWarning
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 def get_sdf_file(smiles):
@@ -52,39 +54,6 @@ def get_sdf_file(smiles):
         file_path = os.path.join("temp", "temp.png")
         Draw.MolToFile(mol, file_path, size=(600, 400))
 
-
-# +
-
-
-def get_descriptors_and_neighbors_info():
-    """
-    Use java tool, which will use the /temp/temp.sdf file to generate the temp_Nighbors.csv and temp_Descriptors.csv and store them
-    in /temp/
-    """
-    # Define the Java directory
-    java_dir = os.path.join("external", "JAVAget_3D_feature_set", "java")
-
-    # Use ".;*" or ".:*" as classpath
-    classpath = f".{os.pathsep}cdk-1.4.13.jar:cdk.jar:jmathio.jar:jmathplot.jar"
-
-    try:
-        # Run the Java programs
-        subprocess.run(
-            ["java", "-cp", classpath, "GetCDKDescriptors", "temp"],
-            check=True,
-            text=True,
-            capture_output=True,
-            cwd=java_dir,  # This is important - sets the working directory
-        )
-
-    except subprocess.CalledProcessError as e:
-        print("Error occurred while running the Java program.")
-        print(f"Command: {e.cmd}")
-        print(f"Return Code: {e.returncode}")
-        print(f"Error Output:\n{e.stderr}")
-        raise
-
-
 # +
 def get_test_fluorianted_compounds_info(smiles, train_dataset):
     """
@@ -104,25 +73,6 @@ def get_test_fluorianted_compounds_info(smiles, train_dataset):
         dataset = pd.DataFrame([["temp"] + [smiles] + [None] * 71], columns=columns)
     return dataset
 
-
-def get_features_table(dataset):
-    """
-    Create a dataframe with each F atom as a row and 3D atomic featureas from 5 spatially neighboring atoms as table content.
-    """
-    neighbor_num = 5
-    if dataset["Code"].values == ["temp"]:
-        file_path = os.path.join("temp")
-        NMR_peaks_with_desc = Combine_descriptors(
-            dataset, neighbor_num, file_path, file_path, with_additional_info=False
-        )
-    else:
-        NMR_peaks_with_desc = Combine_descriptors(
-            dataset, neighbor_num, with_additional_info=False
-        )
-    return NMR_peaks_with_desc
-
-
-# -
 
 
 def get_HOSE_prediction_results_table(
@@ -151,36 +101,6 @@ def get_HOSE_prediction_results_table(
     results = getResults_HOSE(prediction, similarity_levels, HOSE_codes_test)
 
     return results
-
-
-def get_XGBoost_model_results(
-    best_model_file_path, columns_file_path, fluorinated_compounds_w_Desc
-):
-    """
-    Use the best model to predict
-    """
-
-    best_model = XGBRegressor()
-    best_model.load_model(best_model_file_path)
-
-    with open(columns_file_path, "rb") as f:
-        train_cols = pickle.load(f)
-
-    # Step 1. Only keep columns that were used in the dataset for modeling while delete other columns
-    fluorinated_compounds_w_Desc = fluorinated_compounds_w_Desc[train_cols]
-
-    # Get y values
-    y = fluorinated_compounds_w_Desc["NMR_Peaks"]
-
-    orig_features = ["NMR_Peaks"]
-    X = fluorinated_compounds_w_Desc.drop(orig_features, axis=1)
-
-    # Ensure all values in the X are numerical values
-    X = X.apply(pd.to_numeric)
-
-    results_table = get_results_table(best_model=best_model, X=X, y=y)
-
-    return results_table
 
 
 def safe_split(index_value):
@@ -212,12 +132,12 @@ def display_results(results):
         )
 
         predicted_PFAS_spectra_df = results[
-            ["fluorinated_compounds", "atom_index", "ensembeled_model"]
+            ["fluorinated_compounds", "atom_index", "ensembled_model"]
         ]
         predicted_PFAS_spectra_df = predicted_PFAS_spectra_df.pivot(
             index="fluorinated_compounds",
             columns="atom_index",
-            values="ensembeled_model",
+            values="ensembled_model",
         )
 
         # Colors for better contrast
@@ -257,7 +177,7 @@ def display_results(results):
         # Add similarity levels
         #     temp = results[results['fluorinated_compounds'] == 'temp']
         for i, j in zip(predict.index, predict.values):
-            similarity_level = results[results["ensembeled_model"] == i][
+            similarity_level = results[results["ensembled_model"] == i][
                 "similarity_levels"
             ]
             if not similarity_level.empty:
@@ -324,7 +244,7 @@ def display_results(results):
         # Add confidence level information in the second subplot (ax2)
         confidence_data = {
             "Level": [6, 5, 4, 3, 2, 1],
-            "Error": [0.9, 1.0, 1.2, 6.6, 9.4, 18.6],
+            "Error": [1.0, 1.8, 4.9, 7.6, 13.7, 13.8],
         }
 
         ax2.axis("off")
@@ -359,16 +279,16 @@ def display_results(results):
                 "atom_index",
                 "similarity_levels",
                 "actual",
-                "ensembeled_model",
-                "ensembeled_model_error",
+                "ensembled_model",
+                "ensembled_model_error",
             ]
         ].rename(
             columns={
                 "atom_index": "Atom Index",
                 "similarity_levels": "Confidence Level",
                 "actual": "Report Values",
-                "ensembeled_model": "Prediction Results",
-                "ensembeled_model_error": "Prediction Error",
+                "ensembled_model": "Prediction Results",
+                "ensembled_model_error": "Prediction Error",
             }
         )
 
@@ -398,97 +318,106 @@ def display_results(results):
 
 def predictor(
     smiles,
-    train_fluorinated_compounds_file_path=os.path.join(
-        "dataset", "Processed_fluorinated_compounds_19F_NMR_spectra_data.csv"
-    ),
-    HOSE_Code_database_file_path=os.path.join(
-        "model", "HOSE_Code_database_from all fluorinated compounds.csv"
-    ),
-    best_XGBoost_mode_file_path=os.path.join(
-        "model", "Final_xgboost_model_3D_descriptors_n5_full_dataset_Random_Search.json"
-    ),
+    # experimental_data_file_name, 
+    train_fluorinated_compounds_file_path=os.path.join("artifacts", "Processed_PFAS_19F_NMR_spectra_data.csv"),
+    FFNN_2D_model_path=os.path.join("artifacts", "Application_2D_FFNN_sphere5.h5"), 
+    scaler_path=os.path.join("artifacts", "Application_2D_FFNN_scaler_2d_sphere5.pkl"),
+    imputer_path=os.path.join("artifacts", "Application_2D_FFNN_imputer_2d_sphere5.pkl"), 
+    columns_path=os.path.join("artifacts", "Application_2D_FFNN_column_names_2d_sphere5.pkl"),
+    HOSE_Code_database_file_path=os.path.join("artifacts", "HOSE_database_all_fluorianted_compounds.csv"),
 ):
     try:
+            # Load preprocessing tools
+        with open(scaler_path, "rb") as file:
+            scaler = pickle.load(file)
+        with open(imputer_path, "rb") as file:
+            imputer = pickle.load(file)
+        with open(columns_path, "rb") as file:
+            train_columns = pickle.load(file)
+        best_model = load_model(FFNN_2D_model_path, safe_mode=False)
+        train_dataset = pd.read_csv(train_fluorinated_compounds_file_path, index_col=0)
         # Transform ionic SMILES to neutral SMILES, and transform SMILES to canonical SMILES
         smiles = ionic_to_neutral_smiles(smiles)
+
         # Generate sdf file from SMILES
         get_sdf_file(smiles)
-        # Generate CDK descriptors and Neighbors information
-        get_descriptors_and_neighbors_info()
 
-        # Use the CDK descriptors and Neighbors information to get the features table
-        train_dataset = pd.read_csv(train_fluorinated_compounds_file_path, index_col=0)
         dataset = get_test_fluorianted_compounds_info(smiles, train_dataset)
 
-        NMR_peaks_with_desc = get_features_table(dataset)
+        # # Generate CDK descriptors and Neighbors information
+        # get_descriptors_and_neighbors_info()
+
+        # Generate a features table. If SMILES in train dataset then return rows from train, else return empty DataFrame
+        dataset = get_test_fluorianted_compounds_info(smiles, train_dataset)
+
+        # Fill the dataset with 2D descriptors if it's empty
+        get_2d_descriptors = getAtomicDescriptorsFrom2DNeighbors()
+        content = get_2d_descriptors.getDescriptorsFromDataset(dataset=dataset, num_spheres=5)
+
+        content = content.apply(safe_to_numeric)
+        content.columns = content.columns.astype(str)
+
+        # NMR_peaks_with_desc = get_features_table(dataset)
 
         # Get Prediction results from HOSE model
         HOSE_results = get_HOSE_prediction_results_table(
             HOSE_Code_database_file_path, dataset
         )
 
-        # Get Prediction results from XGBoost model
-        XGBoost_results = get_XGBoost_model_results(
-            best_model_file_path=best_XGBoost_mode_file_path,
-            columns_file_path=os.path.join(
-                "model", "column_names_neighbor5_xgboost.pkl"
-            ),
-            fluorinated_compounds_w_Desc=NMR_peaks_with_desc,
-        )
-        combined_prediction = pd.DataFrame()
+        y = content["NMR_Peaks"]
+        X = content.drop(["NMR_Peaks"], axis=1)
+        X = X[train_columns]  # Ensure correct column alignment
+
+         # Impute and scale
+        X_imputed = imputer.transform(X)
+        X_imputed_df = pd.DataFrame(X_imputed, columns=train_columns, index=X.index)
+
+        X_scaled = scaler.transform(X_imputed_df)
+        X_scaled_df = pd.DataFrame(X_scaled, columns=train_columns, index=X.index)
+
+        # FFNN prediction
+        FFNN_results_table = get_results_table(best_model=best_model, X=X_scaled_df, y=y)
+
+        # HOSE prediction
+        HOSE_results = get_HOSE_prediction_results_table(HOSE_Code_database_file_path, dataset)
+
+        # Combine results
         combined_prediction = HOSE_results.copy()
-        combined_prediction.rename(
-            columns={"prediction": "HOSE_model_prediction"}, inplace=True
-        )
-        combined_prediction = combined_prediction[
-            ["actual", "similarity_levels", "HOSE_model_prediction"]
-        ]
-        combined_prediction["XGBoost_model_prediction"] = XGBoost_results["prediction"]
+        combined_prediction.rename(columns={"prediction": "HOSE_model_prediction"}, inplace=True)
+        combined_prediction = combined_prediction[["actual", "similarity_levels", "HOSE_model_prediction"]]
+        combined_prediction["FFNN_model_prediction"] = FFNN_results_table["prediction"]
+        # combined_prediction["FFNN_model_error"] = np.abs(combined_prediction["FFNN_model_prediction"] - combined_prediction["actual"])
 
-        ensembled_XGBoost_and_HOSE = []
+        # Ensemble logic
+        ensembled_predictions = []
         for _, row in combined_prediction.iterrows():
-            if row["similarity_levels"] >= 4:
-                ensembled_XGBoost_and_HOSE.append(row["HOSE_model_prediction"])
+            if row["similarity_levels"] > 4:
+                ensembled_predictions.append(row["HOSE_model_prediction"])
             else:
-                ensembled_XGBoost_and_HOSE.append(row["XGBoost_model_prediction"])
-        combined_prediction["ensembeled_model"] = ensembled_XGBoost_and_HOSE
+                ensembled_predictions.append(row["FFNN_model_prediction"])
+        combined_prediction["ensembled_model"] = ensembled_predictions
 
-        # Identify atoms in same environment, and average their predictions
+        # Add atom index and compound name
+        split_values = [safe_split(idx) for idx in combined_prediction.index]
+        combined_prediction["atom_index"] = [val[0] for val in split_values]
+        combined_prediction["fluorinated_compounds"] = [val[1] for val in split_values]
+
+        # Average predictions for identical environments
         temp_dataset = {"Code": ["temp"], "SMILES": [smiles]}
         for i in range(71):
             temp_dataset[i] = None
         temp_dataset = pd.DataFrame(temp_dataset, index=[0])
+
         HOSE_codes = getHoseCodeContent(dataset)
-        ensemble_temp = combined_prediction.merge(
-            HOSE_codes.drop("NMR_Peaks", axis=1), left_index=True, right_index=True
-        )
-        ensemble_temp_grouped = ensemble_temp.groupby([0, 1, 2, 3, 4, 5])[
-            "ensembeled_model"
-        ].transform(
-            "mean"
-        )  # If HOSE codes with radii = 1~5 are the same, then average the predictions of the atoms
-        ensemble_temp["ensembeled_model"] = ensemble_temp_grouped
-        combined_prediction = ensemble_temp.drop([0, 1, 2, 3, 4, 5], axis=1)
-
+        combined_temp = combined_prediction.merge(HOSE_codes.drop("NMR_Peaks", axis=1), left_index=True, right_index=True)
+        combined_temp_grouped = combined_temp.groupby([0, 1, 2, 3, 4, 5])["ensembled_model"].transform("mean")
+        combined_temp["ensembled_model"] = combined_temp_grouped
+        combined = combined_temp.drop([0, 1, 2, 3, 4, 5], axis=1)
         # Calculate the error of the ensembled model
-        combined_prediction["ensembeled_model_error"] = (
-            combined_prediction["ensembeled_model"] - combined_prediction["actual"]
-        )
-        combined_prediction["ensembeled_model_error"] = combined_prediction[
-            "ensembeled_model_error"
-        ].abs()
+        combined["ensembled_model_error"] = np.abs(combined["ensembled_model"] - combined["actual"])
 
-        ensemble = combined_prediction.drop(
-            ["HOSE_model_prediction", "XGBoost_model_prediction"], axis=1
-        )
-
-        split_values = [safe_split(idx) for idx in ensemble.index]
-
-        # Create new columns from the split values
-        ensemble["atom_index"] = [val[0] for val in split_values]
-        ensemble["fluorinated_compounds"] = [val[1] for val in split_values]
         # Usage
-        plot_data, table_data, structure_image_base64 = display_results(ensemble)
+        plot_data, table_data, structure_image_base64 = display_results(combined)
 
         return plot_data, table_data, structure_image_base64
 

@@ -8,9 +8,10 @@ app = Flask(__name__)  # Corrected: use __name__ instead of name
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
+        
         smiles = request.form.get("smiles")  # Get the SMILES input from the form
 
-        if not smiles:
+        if not smiles or not isinstance(smiles, str):
             return render_template(
                 "index.html", error_message="Please provide a valid SMILES string."
             )
@@ -37,4 +38,4 @@ def index():
 
 
 if __name__ == "__main__":  # Corrected: use __name__ == "__main__"
-    app.run(debug=False, host="0.0.0.0", port=5002)
+    app.run(debug=True, host="0.0.0.0", port=5002)
