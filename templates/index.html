@@ -394,6 +394,156 @@
             box-shadow: none !important;
         }
 
+        /* Enhanced Results Styling */
+        .structure-container, .spectrum-container, .table-container {
+            margin-bottom: 1.5rem;
+        }
+
+        .structure-image {
+            border: 2px solid var(--primary-color);
+            border-radius: 12px;
+            box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            max-width: 100%;
+            height: auto;
+            max-height: 300px; /* Reduced from 400px to 300px for more compact display */
+        }
+
+        .structure-image:hover {
+            transform: scale(1.02);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.2);
+        }
+
+        .spectrum-image {
+            border: 2px solid var(--secondary-color);
+            border-radius: 12px;
+            box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .spectrum-image:hover {
+            transform: scale(1.02);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.2);
+        }
+
+        .structure-info, .spectrum-info {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--dark-color);
+        }
+
+        .info-item i {
+            color: var(--primary-color);
+            width: 16px;
+        }
+
+        /* Enhanced table styling */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-container table {
+            margin-bottom: 0;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .table-container th {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 1rem;
+            font-weight: 600;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .table-container td {
+            padding: 1rem;
+            border-color: var(--border-color);
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .table-container tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .table-container tr:hover {
+            background-color: #e9ecef;
+            transition: background-color 0.2s ease;
+        }
+
+        /* New styles for spectrum legend */
+        .spectrum-legend {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        .spectrum-legend h6 {
+            color: var(--secondary-color);
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .legend-item {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--dark-color);
+            border: 1px solid #ddd;
+            white-space: nowrap;
+        }
+
+        /* New classes for specific legend items */
+        .green-text {
+            color: #22C55E; /* Green for experimental values */
+        }
+        .blue-text {
+            color: #3B82F6; /* Blue for AI predictions */
+        }
+        .confidence-legend {
+            color: #4B5563; /* Darker gray for confidence levels */
+        }
+
+        .green-legend {
+            background-color: #D1FAE5; /* Light green for experimental values */
+        }
+        .blue-legend {
+            background-color: #DBEAFE; /* Light blue for AI predictions */
+        }
+
         @media (max-width: 768px) {
             .header h1 {
                 font-size: 2rem;
@@ -413,7 +563,7 @@
     <div class="main-container">
         <!-- Header Section -->
         <div class="header">
-            <h1><i class="fas fa-atom"></i> 19F NMR Spectrum Predictor</h1>
+            <h1><i class="fas fa-atom"></i> <sup>19</sup>F NMR Spectrum Predictor</h1>
             <p class="subtitle">AI-Powered Chemical Analysis for Fluorinated Compounds</p>
         </div>
 
@@ -421,7 +571,7 @@
         <div class="content">
             <!-- Input Section -->
             <div class="input-section">
-                <h2 class="mb-4 text-center"><i class="fas fa-atom"></i> Predict 19F NMR Spectrum</h2>
+                <h2 class="mb-4 text-center"><i class="fas fa-atom"></i> Predict <sup>19</sup>F NMR Spectrum</h2>
                 <p class="text-center text-muted mb-4">Enter a SMILES string to analyze your fluorinated compound and get AI-powered NMR predictions</p>
                 
                 <!-- Help Section moved above the form -->
@@ -448,13 +598,13 @@
                             </ul>
                             
                             <h6><i class="fas fa-clock"></i> Processing time:</h6>
-                            <p class="small">Analysis typically takes 50 ms to 10 seconds depending on compound complexity.</p>
+                            <p class="small">Analysis typically takes 50 ms to 1 seconds depending on compound complexity.</p>
                         </div>
                     </div>
                 </div>
                 
                 <form method="POST" id="predictionForm" onsubmit="return validateAndSubmit()">
-                    <div class="form-group">
+            <div class="form-group">
                         <label for="smiles" class="form-label">
                             <i class="fas fa-code"></i> SMILES String
                         </label>
@@ -479,10 +629,10 @@
                     
                     <div class="text-center">
                         <button type="submit" class="btn-predict btn-lg" id="submitBtn">
-                            <i class="fas fa-magic"></i> Predict 19F NMR Spectrum
+                            <i class="fas fa-magic"></i> Predict <sup>19</sup>F NMR Spectrum
                         </button>
-                    </div>
-                </form>
+            </div>
+        </form>
             </div>
 
             <!-- Loading Section -->
@@ -504,39 +654,76 @@
             <!-- Results Section -->
             {% if plot_data or structure_image_base64 or table_data %}
             <div class="results-section" id="resultsSection">
-                {% if structure_image_base64 %}
+                {% if plot_data %}
                 <div class="result-card">
-                    <h3><i class="fas fa-molecule"></i> Molecular Structure</h3>
-                    <img src="data:image/png;base64,{{ structure_image_base64 }}" 
-                         alt="Molecular Structure" 
-                         class="result-image img-fluid">
+                    <h3><i class="fas fa-chart-line"></i> Predicted <sup>19</sup>F NMR Spectrum</h3>
+                    <div class="spectrum-container">
+                        <img src="data:image/png;base64,{{ plot_data }}" 
+                             alt="Predicted 19F NMR Spectrum" 
+                             class="result-image img-fluid spectrum-image">
+                        <div class="spectrum-info">
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <i class="fas fa-chart-line"></i>
+                                    <span class="blue-text"><strong>Blue bars:</strong> AI model predictions</span>
+                                </div>
+                                <div class="info-item">
+                                    <i class="fas fa-chart-bar"></i>
+                                    <span class="green-text"><strong>Green bars:</strong> Reported experimental values</span>
+                                </div>
+                                
+                                <!-- <div class="info-item">
+                                    <i class="fas fa-tag"></i>
+                                    <span><strong>Colored labels:</strong> Confidence levels (L6=Very High to L1=Very Low)</span>
+                                </div> -->
+                            </div>
+                        </div>
+                        
+                        <!-- Color Legend moved below spectrum info -->
+                        <div class="spectrum-legend">
+                            <h6><i class="fas fa-palette"></i> Color Legend For Confidence Levels:</h6>
+                            <div class="legend-items">
+                                <span class="legend-item" style="background-color: #90EE90;">L6: Very High Confidence</span>
+                                <span class="legend-item" style="background-color: #98FB98;">L5: High Confidence</span>
+                                <span class="legend-item" style="background-color: #FFFFE0;">L4: Good Confidence</span>
+                                <span class="legend-item" style="background-color: #FFE4B5;">L3: Moderate Confidence</span>
+                                <span class="legend-item" style="background-color: #FFB6C1;">L2: Low Confidence</span>
+                                <span class="legend-item" style="background-color: #FFC0CB;">L1: Very Low Confidence</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 {% endif %}
 
-        {% if plot_data %}
+                {% if structure_image_base64 %}
                 <div class="result-card">
-                    <h3><i class="fas fa-chart-line"></i> Predicted 19F NMR Spectrum</h3>
-                    <img src="data:image/png;base64,{{ plot_data }}" 
-                         alt="Predicted 19F NMR Spectrum" 
-                         class="result-image img-fluid">
+                    <h3><i class="fas fa-molecule"></i> Molecular Structure</h3>
+                    <div class="structure-container">
+                        <img src="data:image/png;base64,{{ structure_image_base64 }}" 
+                             alt="Molecular Structure" 
+                             class="result-image img-fluid structure-image">
+                        <div class="structure-info">
+                            <p><i class="fas fa-info-circle"></i> <strong>Note:</strong> Fluorine atoms are highlighted in gold to show the 19F NMR active centers. Atom indices are displayed for reference.</p>
+                        </div>
+                    </div>
                 </div>
-        {% endif %}
+                {% endif %}
 
-        {% if table_data %}
+                {% if table_data %}
                 <div class="result-card">
                     <h3><i class="fas fa-table"></i> Prediction Results</h3>
-            <div class="table-responsive">
-                {{ table_data|safe }}
+                    <div class="table-container">
+                        {{ table_data|safe }}
                     </div>
                 </div>
                 {% endif %}
             </div>
-        {% endif %}
+            {% endif %}
         </div>
         
         <!-- Footer -->
         <div class="footer">
-            <p>&copy; 2024 19F NMR Spectrum Predictor. Powered by AI and Machine Learning.</p>
+            <p>&copy; 2024 <sup>19</sup>F NMR Spectrum Predictor. Powered by AI and Machine Learning.</p>
         </div>
     </div>
     

@@ -4,6 +4,7 @@ import io
 import sys
 import base64
 import pandas as pd
+import pickle
 
 import matplotlib
 
@@ -46,13 +47,42 @@ def get_sdf_file(smiles):
     w.write(sdf)
     w.close()
 
-    # Create pictures for the molecule
+    # Create enhanced molecular structure image
+    file_path = os.path.join("temp", "temp.png")
+    
+    # Set atom map numbers for display
     for _, atom in enumerate(mol.GetAtoms()):
         atom.SetProp("molAtomMapNumber", str(atom.GetIdx()))
-
-        # Save the molecule image with the Code as part of the file name
-        file_path = os.path.join("temp", "temp.png")
-        Draw.MolToFile(mol, file_path, size=(600, 400))
+    
+    # Create a more appealing molecular structure image with smaller size
+    # Use a more reliable highlighting method
+    highlight_atoms = [atom.GetIdx() for atom in mol.GetAtoms() if atom.GetSymbol() == "F"]
+    highlight_bonds = []
+    for bond in mol.GetBonds():
+        begin_atom = bond.GetBeginAtom()
+        end_atom = bond.GetEndAtom()
+        if begin_atom.GetSymbol() == "F" or end_atom.GetSymbol() == "F":
+            highlight_bonds.append(bond.GetIdx())
+    
+    # Create color dictionaries with explicit RGB values
+    atom_colors = {}
+    bond_colors = {}
+    
+    for atom_idx in highlight_atoms:
+        atom_colors[atom_idx] = (1.0, 0.8, 0.0)  # Gold color
+    
+    for bond_idx in highlight_bonds:
+        bond_colors[bond_idx] = (1.0, 0.8, 0.0)  # Gold color
+    
+    Draw.MolToFile(
+        mol, 
+        file_path, 
+        size=(500, 300),  # Reduced height from 400 to 300 for more compact display
+        highlightAtoms=highlight_atoms,
+        highlightAtomColors=atom_colors,
+        highlightBonds=highlight_bonds,
+        highlightBondColors=bond_colors
+    )
 
 # +
 def get_test_fluorianted_compounds_info(smiles, train_dataset):
@@ -115,13 +145,23 @@ def safe_split(index_value):
 
 def display_results(results):
     try:
-        # Set style for better visualization
-        plt.style.use("seaborn-v0_8-darkgrid")
-
-        # Create figure with two subplots
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4), width_ratios=[2, 1])
-        fig.subplots_adjust(hspace=0.1)
-
+        # Set modern style for better visualization
+        plt.style.use("default")
+        plt.rcParams['font.family'] = 'DejaVu Sans'
+        plt.rcParams['font.size'] = 10
+        plt.rcParams['axes.linewidth'] = 1.2
+        plt.rcParams['axes.edgecolor'] = '#333333'
+        
+        # Create figure with better proportions and styling
+        fig = plt.figure(figsize=(16, 8), facecolor='white')  # Reduced height from 10 to 8
+        
+        # Create grid layout for better organization (2 rows instead of 3)
+        gs = fig.add_gridspec(2, 3, height_ratios=[4, 1], width_ratios=[2, 1, 1], 
+                             hspace=0.3, wspace=0.25)
+        
+        # Main NMR spectrum plot
+        ax1 = fig.add_subplot(gs[0, :2])
+        
         # Prepare data
         real_PFAS_spectra_df = results[
             ["fluorinated_compounds", "atom_index", "actual"]
@@ -140,140 +180,178 @@ def display_results(results):
             values="ensembled_model",
         )
 
-        # Colors for better contrast
-        actual_color = "g"  # Green
-        predict_color = "C9"  # Blue
+        # Enhanced colors and styling
+        actual_color = "#2E8B57"  # Sea Green
+        predict_color = "#4169E1"  # Royal Blue
+        confidence_colors = {
+            6: "#00FF00",  # Bright Green
+            5: "#32CD32",  # Lime Green
+            4: "#FFD700",  # Gold
+            3: "#FFA500",  # Orange
+            2: "#FF6347",  # Tomato
+            1: "#DC143C"   # Crimson
+        }
 
         # Get actual and predicted value counts
         actual = real_PFAS_spectra_df.loc[code, :].value_counts()
         predict = predicted_PFAS_spectra_df.loc[code, :].value_counts()
 
-        # Plot in the first subplot (ax1)
-        if actual.empty:
-            plt.vlines(
-                predict.index, ymin=0, ymax=-predict.values, color="w", label="Actual"
-            )
-
-        else:
+        # Enhanced NMR spectrum visualization
+        if not actual.empty:
+            # Plot actual values (negative side)
             ax1.vlines(
                 actual.index,
                 ymin=0,
                 ymax=-actual.values,
                 color=actual_color,
-                label="Actual",
-                linewidth=2,
+                label="Reported Values",
+                linewidth=3,
+                alpha=0.8,
+                capstyle='round'
             )
+            # Remove actual value labels - only show peaks
 
-        # Plot predicted values
+        # Plot predicted values (positive side)
         ax1.vlines(
             predict.index,
             ymin=0,
             ymax=predict.values,
             color=predict_color,
-            label="Prediction",
-            linewidth=2,
+            label="Predicted Values",
+            linewidth=3,
+            alpha=0.8,
+            capstyle='round'
         )
-
-        # Add similarity levels
-        #     temp = results[results['fluorinated_compounds'] == 'temp']
+        
+        # Add confidence level indicators with colors (only L1-L6 labels)
         for i, j in zip(predict.index, predict.values):
-            similarity_level = results[results["ensembled_model"] == i][
-                "similarity_levels"
-            ]
+            similarity_level = results[results["ensembled_model"] == i]["similarity_levels"]
             if not similarity_level.empty:
+                level = similarity_level.iloc[0]
+                color = confidence_colors.get(level, "#808080")
+                
+                # Enhanced confidence level display (only L1-L6)
                 ax1.text(
                     i,
-                    j + 0.05,
-                    similarity_level.iloc[0],
+                    j + 0.1,
+                    f"L{level}",
                     ha="center",
                     va="bottom",
-                    fontsize=10,
-                    color="black",
-                    bbox=dict(facecolor="white", alpha=0.3),
+                    fontsize=11,
+                    weight='bold',
+                    color='white',
+                    bbox=dict(
+                        facecolor=color,
+                        edgecolor='white',
+                        alpha=0.9,
+                        boxstyle='round,pad=0.3',
+                        linewidth=1
+                    )
                 )
+                
+                # Remove predicted value labels - only show L1-L6
 
-        # Set plot limits and labels
+        # Set plot limits and styling
         if not actual.empty:
-            x_min = min(actual.index.min(), predict.index.min()) - 10
-            x_max = max(actual.index.max(), predict.index.max()) + 10
-            y_max = max(actual.values.max(), predict.values.max()) + 0.2
+            x_min = min(actual.index.min(), predict.index.min()) - 15
+            x_max = max(actual.index.max(), predict.index.max()) + 15
+            y_max = max(actual.values.max(), predict.values.max()) + 0.5
         else:
-            x_min = predict.index.min() - 10
-            x_max = predict.index.max() + 10
-            y_max = predict.values.max() + 0.2
+            x_min = predict.index.min() - 15
+            x_max = predict.index.max() + 15
+            y_max = predict.values.max() + 0.5
             ax1.text(
                 (x_min + x_max) / 2,
                 -y_max / 2,
-                "No report value",
+                "No reported values available",
                 color=actual_color,
                 ha="center",
                 va="center",
-                fontsize=17,
+                fontsize=16,
+                weight='bold',
+                style='italic'
             )
 
         ax1.set_xlim([x_min, x_max])
         ax1.set_ylim([-y_max, y_max])
 
-        # Add labels
-        ax1.text(
-            x_min - 2,
-            y_max / 2,
-            "Prediction",
-            color=predict_color,
-            rotation=90,
-            ha="center",
-            va="center",
-            fontsize=14,
-        )
-        ax1.text(
-            x_min - 2,
-            -y_max / 2,
-            "Report",
-            color=actual_color,
-            rotation=90,
-            ha="center",
-            va="center",
-            fontsize=14,
-        )
-
-        ax1.set_xlabel(r"$^{19}$F NMR shift", fontsize=12)
+        # Enhanced axis labels and styling
+        ax1.set_xlabel(r"$^{19}$F NMR Chemical Shift (ppm)", fontsize=14, weight='bold', color='#333333')
+        ax1.set_ylabel("Signal Intensity", fontsize=14, weight='bold', color='#333333')
+        # Remove title for cleaner appearance
+        
+        # Remove y-axis ticks and add center line
         ax1.set_yticks([])
-        ax1.axhline(0, color="k", linewidth=0.5)
-        ax1.set_title("NMR Shift Prediction Results", fontsize=14, pad=20)
-
-        # Add confidence level information in the second subplot (ax2)
+        ax1.axhline(0, color='#333333', linewidth=2, alpha=0.7)
+        
+        # Remove legend for cleaner appearance
+        
+        # Grid styling
+        ax1.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
+        ax1.set_facecolor('#F8F9FA')
+        
+        # Confidence level explanation
+        ax2 = fig.add_subplot(gs[0, 2])
+        ax2.axis("off")
+        
+        # Enhanced confidence level table with summary statistics
         confidence_data = {
             "Level": [6, 5, 4, 3, 2, 1],
             "Error": [1.0, 1.8, 4.9, 7.6, 13.7, 13.8],
+            "Color": ["#00FF00", "#32CD32", "#FFD700", "#FFA500", "#FF6347", "#DC143C"]
         }
-
-        ax2.axis("off")
-        ax2.set_xlim(0, 2)  # Adjust limits as needed
-        ax2.set_ylim(0, 2)
-        table_text = (
-            "Note:\n"
-            + "The number above prediction results indicates\n"
-            + "the confidence level of the prediction.\n\n"
-            + "Confidence Levels (75% prediction error):\n\n"
-        )
-        for level, error in zip(confidence_data["Level"], confidence_data["Error"]):
-            table_text += f"Level {level}: ±{error} ppm\n"
+        
+        # Calculate summary statistics
+        total_predictions = len(results)
+        avg_confidence = results['similarity_levels'].mean()
+        avg_error = results['ensembled_model_error'].mean()
+        
+        # Create a clearer and better organized confidence level display with summary
+        table_text = "Note: L1-L6 labels above peaks\n"
+        table_text += "show confidence levels\n\n"
+        table_text += "POSSIBLE ERROR RANGE:\n"
+        table_text += "========================\n"
+        table_text += "L6: Very High (±1.0 ppm)\n"
+        table_text += "L5: High (±1.8 ppm)\n"
+        table_text += "L4: Good (±4.9 ppm)\n"
+        table_text += "L3: Moderate (±7.6 ppm)\n"
+        table_text += "L2: Low (±13.7 ppm)\n"
+        table_text += "L1: Very Low (±13.8 ppm)\n\n"
+        table_text += "SUMMARY STATISTICS:\n"
+        table_text += "========================\n"
+        table_text += f"Total Predictions: {total_predictions}\n"
+        table_text += f"Avg Confidence: {avg_confidence:.1f}/6\n"
+        table_text += f"Avg Error: ±{avg_error:.1f} ppm\n"
+        # table_text += f"Compound Code in Dataset: {code if code != 'temp' else 'Not in Dataset'}"
+        
         ax2.text(
-            0,
-            1,
-            table_text,
-            ha="left",
-            va="center",
-            fontsize=12,
-            bbox=dict(facecolor="white", edgecolor="white", alpha=0.9),
+            0.00, 0.95, table_text, 
+            ha="left", va="top",
+            fontsize=13,  # Increased from 9 to 11 for better readability
+            fontfamily='monospace',
+            weight='bold',
+            bbox=dict(
+                facecolor='#F8F9FA',
+                edgecolor='none',  # Removed border by setting edgecolor to 'none'
+                alpha=0.95,
+                boxstyle='round,pad=0.8',
+                linewidth=0  # Set linewidth to 0 to ensure no border
+            ),
+            transform=ax2.transAxes
         )
+        
+        # Remove the separate summary statistics section
+        # ax3 = fig.add_subplot(gs[1, :]) - This section is now removed
 
+        # Save the enhanced plot
         plot_img = io.BytesIO()
-        plt.savefig(plot_img, format="png")
-        plt.close(fig)  # Close figure to free memory
+        plt.savefig(plot_img, format="png", dpi=300, bbox_inches='tight', 
+                   facecolor='white', edgecolor='none')
+        plt.close(fig)
         plot_img.seek(0)
         plot_base64 = base64.b64encode(plot_img.getvalue()).decode("utf-8")
 
+        # Enhanced table styling
         details = results[
             [
                 "atom_index",
@@ -286,29 +364,66 @@ def display_results(results):
             columns={
                 "atom_index": "Atom Index",
                 "similarity_levels": "Confidence Level",
-                "actual": "Report Values",
-                "ensembled_model": "Prediction Results",
+                "actual": "Reported Values",
+                "ensembled_model": "Predicted Values",
                 "ensembled_model_error": "Prediction Error",
             }
         )
 
         details.reset_index(drop=True, inplace=True)
+        
+        # Add color coding to confidence levels in the table
+        def color_confidence(val):
+            if pd.isna(val):
+                return ''
+            level = int(val)
+            colors = {
+                6: 'background-color: #90EE90',  # Light Green
+                5: 'background-color: #98FB98',  # Pale Green
+                4: 'background-color: #FFFFE0',  # Light Yellow
+                3: 'background-color: #FFE4B5',  # Moccasin
+                2: 'background-color: #FFB6C1',  # Light Pink
+                1: 'background-color: #FFC0CB'   # Pink
+            }
+            return colors.get(level, '')
 
-        # Save the table for web use
-        table_data = details.to_html(classes="table table-striped", index=False)
+        # Apply styling to the table
+        styled_table = details.style.applymap(color_confidence, subset=['Confidence Level'])
+        styled_table = styled_table.set_properties(**{
+            'background-color': 'white',
+            'color': '#333333',
+            'border': '1px solid #ddd',
+            'padding': '8px',
+            'text-align': 'center'
+        }).set_table_styles([
+            {'selector': 'th', 'props': [
+                ('background-color', '#2C3E50'),
+                ('color', 'white'),
+                ('font-weight', 'bold'),
+                ('text-align', 'center'),
+                ('padding', '12px'),
+                ('border', '1px solid #34495E')
+            ]},
+            {'selector': 'td', 'props': [
+                ('padding', '10px'),
+                ('border', '1px solid #ddd')
+            ]}
+        ])
 
-        # Check if the molecular structure image exists and encode it if necessary
+        # Save the enhanced table
+        table_data = styled_table.to_html(index=False, escape=False)
+
+        # Check if the molecular structure image exists and encode it
         structure_image_path = os.path.join("temp", "temp.png")
         if os.path.exists(structure_image_path):
             with open(structure_image_path, "rb") as structure_file:
-                structure_base64 = base64.b64encode(structure_file.read()).decode(
-                    "utf-8"
-                )
+                structure_base64 = base64.b64encode(structure_file.read()).decode("utf-8")
         else:
             structure_base64 = None
 
     except Exception as e:
-        print(f"Error generating structure image: {str(e)}")
+        print(f"Error generating enhanced results: {str(e)}")
+        return None, None, None
 
     return plot_base64, table_data, structure_base64
 
