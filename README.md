@@ -33,7 +33,7 @@ open http://localhost:5002
 
 ```bash
 # Clone the repository
-git clone https://github.com/Kilua01/Application_19F_NMR_Spectra_predictor_FFNN.git
+git clone https://github.com/Dandan-Rao/Application_19F_NMR_Spectra_predictor_FFNN.git
 cd Application_19F_NMR_Spectra_predictor_FFNN
 
 # Install dependencies
