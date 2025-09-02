@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  nmr-predictor:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: dandanrao/19nmr-predictor_FFNN:latest
+    container_name: nmr-predictor
+    ports:
+      - "5002:5002"
+    environment:
+      - FLASK_ENV=production
+      - PYTHONPATH=/app/external
+    volumes:
+      - ./temp:/app/temp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

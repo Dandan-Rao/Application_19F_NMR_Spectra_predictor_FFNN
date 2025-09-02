@@ -1,24 +1,39 @@
 #!/usr/bin/env python
+import os
+import logging
 from flask import Flask, request, render_template
-from predictor import predictor  # Make sure to import the predictor function
+from predictor import predictor
 
-app = Flask(__name__)  # Corrected: use __name__ instead of name
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
+app = Flask(__name__)
+
+# Production configuration
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        
-        smiles = request.form.get("smiles")  # Get the SMILES input from the form
+        smiles = request.form.get("smiles")
 
         if not smiles or not isinstance(smiles, str):
+            logger.warning(f"Invalid SMILES input: {smiles}")
             return render_template(
                 "index.html", error_message="Please provide a valid SMILES string."
             )
 
         try:
+            logger.info(f"Processing SMILES: {smiles}")
             # Call the predictor function with the SMILES input
             plot_data, table_data, structure_image_base64 = predictor(smiles)
+            
+            if plot_data is None or table_data is None:
+                raise ValueError("Failed to generate prediction results")
+                
+            logger.info(f"Successfully processed SMILES: {smiles}")
             return render_template(
                 "index.html",
                 plot_data=plot_data,
@@ -26,16 +41,39 @@ def index():
                 structure_image_base64=structure_image_base64,
             )
         except ValueError as e:
-            # Pass error message to the template
+            logger.error(f"ValueError for SMILES {smiles}: {str(e)}")
             return render_template("index.html", error_message=str(e))
         except Exception as e:
-            # Handle unexpected exceptions
+            logger.error(f"Unexpected error for SMILES {smiles}: {str(e)}")
             return render_template(
-                "index.html", error_message=f"Unexpected error: {str(e)}"
+                "index.html", 
+                error_message="An unexpected error occurred. Please try again or contact support."
             )
 
     return render_template("index.html")
 
+@app.route("/health")
+def health_check():
+    """Health check endpoint for Docker health checks"""
+    return {"status": "healthy", "service": "19F NMR Spectrum Predictor"}
 
-if __name__ == "__main__":  # Corrected: use __name__ == "__main__"
-    app.run(debug=True, host="0.0.0.0", port=5002)
+@app.errorhandler(404)
+def not_found(error):
+    return render_template("index.html", error_message="Page not found"), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error(f"Internal server error: {error}")
+    return render_template("index.html", error_message="Internal server error. Please try again."), 500
+
+if __name__ == "__main__":
+    # Production configuration
+    port = int(os.environ.get('PORT', 5002))
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    
+    logger.info(f"Starting 19F NMR Spectrum Predictor on port {port}")
+    app.run(
+        host='0.0.0.0',
+        port=port,
+        debug=debug
+    )

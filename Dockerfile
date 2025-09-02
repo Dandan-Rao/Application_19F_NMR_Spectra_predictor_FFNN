@@ -1,78 +1,58 @@
-# syntax=docker/dockerfile:1
+# Use Python 3.11 slim image optimized for scientific computing
+FROM python:3.11-slim
 
-FROM eclipse-temurin:23-jre as base
-
-# Set Python version
-ARG PYTHON_VERSION=3.12.10
-
-# Environment variables
+# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV MPLCONFIGDIR=/tmp
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=production
+ENV PYTHONPATH=/app/external
 
+# Set working directory
 WORKDIR /app
 
-# Create a non-privileged user
-ARG UID=10001
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    appuser
-
-# Install required system libraries and Python from source
+# Install only essential system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
-    build-essential \
+    gcc \
+    g++ \
+    libc6-dev \
     libxrender1 \
     libxext6 \
     libsm6 \
     libexpat1 \
-    zlib1g-dev \
-    libffi-dev \
-    libssl-dev \
-    libbz2-dev \
-    libreadline-dev \
-    libsqlite3-dev \
     ca-certificates \
     curl \
-    && \
-    # Download and install Python
-    wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
-    tar xzf Python-${PYTHON_VERSION}.tgz && \
-    cd Python-${PYTHON_VERSION} && \
-    ./configure --enable-optimizations && \
-    make -j$(nproc) && \
-    make altinstall && \
-    cd .. && \
-    rm -rf Python-${PYTHON_VERSION} Python-${PYTHON_VERSION}.tgz && \
-    apt-get remove --purge -y build-essential wget curl && \
-    apt-get autoremove -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Make sure python points to the newly installed version
-RUN ln -s /usr/local/bin/python3.12 /usr/local/bin/python
+# Create a non-root user
+RUN useradd --create-home --shell /bin/bash appuser
 
-# Copy all source code
+# Copy requirements first for better Docker layer caching
+COPY requirements.txt .
+
+# Install Python dependencies with optimizations
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --compile -r requirements.txt
+
+# Copy application code (including external modules)
 COPY . .
 
-# Make sure the temp directory is owned by the non-privileged user
-RUN mkdir -p /app/temp && chown -R appuser:appuser /app/temp
+# Create necessary directories and set permissions
+RUN mkdir -p /app/temp && \
+    mkdir -p /app/artifacts && \
+    chown -R appuser:appuser /app
 
-# Install Python packages
-RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m ensurepip && \
-    python -m pip install --no-cache-dir -r requirements.txt
-
-# Switch to non-privileged user
+# Switch to non-root user
 USER appuser
 
-# Expose the port used by Python app
+# Expose port
 EXPOSE 5002
 
-# Run the Python application
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5002/health || exit 1
+
+# Run the application
 CMD ["python", "app.py"]
