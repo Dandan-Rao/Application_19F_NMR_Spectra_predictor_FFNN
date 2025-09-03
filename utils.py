@@ -1119,7 +1119,7 @@ def getHoseCodeContent(data, max_radius=6):
         mol = Chem.MolFromSmiles(smiles)
         mol = Transform_SMILE_to_3D_conformation(smiles)
 
-        output_file_path = os.path.join("temp", f"{fluorinated_compounds}.mol")
+        output_file_path = os.path.join("/tmp", "temp", f"{fluorinated_compounds}.mol")
 
         Chem.MolToMolFile(mol, output_file_path)
         wedgemap = create_wedgemap(output_file_path)

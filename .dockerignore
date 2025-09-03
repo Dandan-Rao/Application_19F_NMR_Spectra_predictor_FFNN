@@ -88,3 +88,9 @@ logs/
 
 # Keep external directory - it contains required modules like hosegen
 # external/
+lambda_test_events.json
+quick_lambda_test.py
+README.Lambda_Testing.md
+README.Lambda_Testing_Quick.md
+test_lambda_deployment.py
+test_lambda_deployment_full.py

@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 def get_sdf_file(smiles):
     """
-    Create .sdf file and temporarily save as /temp/temp.sdf
+    Create .sdf file and temporarily save as /tmp/temp/temp.sdf
     """
     mol = Chem.MolFromSmiles(smiles)
 
@@ -40,15 +40,15 @@ def get_sdf_file(smiles):
     mol = Chem.MolFromSmiles(smiles)
     sdf = Transform_SMILE_to_3D_conformation(smiles)
 
-    # Save .sdf file
-    filename = os.path.join("temp", "temp.sdf")
+    # Save .sdf file (use /tmp for Lambda compatibility)
+    filename = os.path.join("/tmp", "temp", "temp.sdf")
 
     w = Chem.SDWriter(filename)
     w.write(sdf)
     w.close()
 
     # Create enhanced molecular structure image
-    file_path = os.path.join("temp", "temp.png")
+    file_path = os.path.join("/tmp", "temp", "temp.png")
     
     # Set atom map numbers for display
     for _, atom in enumerate(mol.GetAtoms()):
@@ -414,7 +414,7 @@ def display_results(results):
         table_data = styled_table.to_html(index=False, escape=False)
 
         # Check if the molecular structure image exists and encode it
-        structure_image_path = os.path.join("temp", "temp.png")
+        structure_image_path = os.path.join("/tmp", "temp", "temp.png")
         if os.path.exists(structure_image_path):
             with open(structure_image_path, "rb") as structure_file:
                 structure_base64 = base64.b64encode(structure_file.read()).decode("utf-8")
@@ -434,13 +434,92 @@ def display_results(results):
 def predictor(
     smiles,
     # experimental_data_file_name, 
-    train_fluorinated_compounds_file_path=os.path.join("artifacts", "Processed_PFAS_19F_NMR_spectra_data.csv"),
-    FFNN_2D_model_path=os.path.join("artifacts", "Application_2D_FFNN_sphere5.h5"), 
-    scaler_path=os.path.join("artifacts", "Application_2D_FFNN_scaler_2d_sphere5.pkl"),
-    imputer_path=os.path.join("artifacts", "Application_2D_FFNN_imputer_2d_sphere5.pkl"), 
-    columns_path=os.path.join("artifacts", "Application_2D_FFNN_column_names_2d_sphere5.pkl"),
-    HOSE_Code_database_file_path=os.path.join("artifacts", "HOSE_database_all_fluorianted_compounds.csv"),
+    train_fluorinated_compounds_file_path=None,
+    FFNN_2D_model_path=None, 
+    scaler_path=None,
+    imputer_path=None, 
+    columns_path=None,
+    HOSE_Code_database_file_path=None,
 ):
+    # Auto-detect artifact paths for Lambda compatibility
+    if train_fluorinated_compounds_file_path is None:
+        # Try different possible paths
+        possible_paths = [
+            os.path.join("artifacts", "Processed_PFAS_19F_NMR_spectra_data.csv"),
+            os.path.join("/var/task", "artifacts", "Processed_PFAS_19F_NMR_spectra_data.csv"),
+            os.path.join("./artifacts", "Processed_PFAS_19F_NMR_spectra_data.csv")
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                train_fluorinated_compounds_file_path = path
+                break
+        if train_fluorinated_compounds_file_path is None:
+            raise FileNotFoundError("Could not find Processed_PFAS_19F_NMR_spectra_data.csv in any expected location")
+    
+    if FFNN_2D_model_path is None:
+        possible_paths = [
+            os.path.join("artifacts", "Application_2D_FFNN_sphere5.h5"),
+            os.path.join("/var/task", "artifacts", "Application_2D_FFNN_sphere5.h5"),
+            os.path.join("./artifacts", "Application_2D_FFNN_sphere5.h5")
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                FFNN_2D_model_path = path
+                break
+        if FFNN_2D_model_path is None:
+            raise FileNotFoundError("Could not find Application_2D_FFNN_sphere5.h5 in any expected location")
+    
+    if scaler_path is None:
+        possible_paths = [
+            os.path.join("artifacts", "Application_2D_FFNN_scaler_2d_sphere5.pkl"),
+            os.path.join("/var/task", "artifacts", "Application_2D_FFNN_scaler_2d_sphere5.pkl"),
+            os.path.join("./artifacts", "Application_2D_FFNN_scaler_2d_sphere5.pkl")
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                scaler_path = path
+                break
+        if scaler_path is None:
+            raise FileNotFoundError("Could not find Application_2D_FFNN_scaler_2d_sphere5.pkl in any expected location")
+    
+    if imputer_path is None:
+        possible_paths = [
+            os.path.join("artifacts", "Application_2D_FFNN_imputer_2d_sphere5.pkl"),
+            os.path.join("/var/task", "artifacts", "Application_2D_FFNN_imputer_2d_sphere5.pkl"),
+            os.path.join("./artifacts", "Application_2D_FFNN_imputer_2d_sphere5.pkl")
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                imputer_path = path
+                break
+        if imputer_path is None:
+            raise FileNotFoundError("Could not find Application_2D_FFNN_imputer_2d_sphere5.pkl in any expected location")
+    
+    if columns_path is None:
+        possible_paths = [
+            os.path.join("artifacts", "Application_2D_FFNN_column_names_2d_sphere5.pkl"),
+            os.path.join("/var/task", "artifacts", "Application_2D_FFNN_column_names_2d_sphere5.pkl"),
+            os.path.join("./artifacts", "Application_2D_FFNN_column_names_2d_sphere5.pkl")
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                columns_path = path
+                break
+        if columns_path is None:
+            raise FileNotFoundError("Could not find Application_2D_FFNN_column_names_2d_sphere5.pkl in any expected location")
+    
+    if HOSE_Code_database_file_path is None:
+        possible_paths = [
+            os.path.join("artifacts", "HOSE_database_all_fluorianted_compounds.csv"),
+            os.path.join("/var/task", "artifacts", "HOSE_database_all_fluorianted_compounds.csv"),
+            os.path.join("./artifacts", "HOSE_database_all_fluorianted_compounds.csv")
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                HOSE_Code_database_file_path = path
+                break
+        if HOSE_Code_database_file_path is None:
+            raise FileNotFoundError("Could not find HOSE_database_all_fluorianted_compounds.csv in any expected location")
     try:
             # Load preprocessing tools
         with open(scaler_path, "rb") as file:

@@ -1,58 +1,42 @@
-# Use Python 3.11 slim image optimized for scientific computing
-FROM python:3.11-slim
+# Use AWS Lambda Python 3.12 base image
+FROM public.ecr.aws/lambda/python:3.12
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV MPLCONFIGDIR=/tmp
-ENV FLASK_APP=app.py
-ENV FLASK_ENV=production
-ENV PYTHONPATH=/app/external
+ENV PYTHONPATH=/var/task/external
 
 # Set working directory
-WORKDIR /app
+WORKDIR /var/task
 
-# Install only essential system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install system dependencies required for scientific computing
+RUN microdnf update -y && \
+    microdnf install -y \
     gcc \
-    g++ \
-    libc6-dev \
-    libxrender1 \
-    libxext6 \
-    libsm6 \
-    libexpat1 \
-    ca-certificates \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
-
-# Create a non-root user
-RUN useradd --create-home --shell /bin/bash appuser
+    gcc-c++ \
+    libXrender \
+    libXext \
+    libSM \
+    expat \
+    && microdnf clean all
 
 # Copy requirements first for better Docker layer caching
 COPY requirements.txt .
 
-# Install Python dependencies with optimizations
+# Install Python dependencies with optimizations for Lambda
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --compile -r requirements.txt
+    pip install --no-cache-dir --only-binary=all --prefer-binary -r requirements.txt
 
 # Copy application code (including external modules)
 COPY . .
 
-# Create necessary directories and set permissions
-RUN mkdir -p /app/temp && \
-    mkdir -p /app/artifacts && \
-    chown -R appuser:appuser /app
+# Create necessary directories
+RUN mkdir -p /tmp/temp /tmp/artifacts
 
-# Switch to non-root user
-USER appuser
+# Set proper permissions (Lambda runs as lambda user by default)
+RUN chmod -R 755 /var/task
 
-# Expose port
-EXPOSE 5002
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5002/health || exit 1
-
-# Run the application
-CMD ["python", "app.py"]
+# The CMD should specify the handler function
+# Format: filename.function_name
+CMD ["lambda_handler.lambda_handler"]

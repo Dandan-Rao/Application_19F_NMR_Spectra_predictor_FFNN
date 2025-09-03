@@ -4,6 +4,8 @@ import logging
 from flask import Flask, request, render_template
 from predictor import predictor
 
+# import awsgi
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,6 +29,15 @@ def index():
 
         try:
             logger.info(f"Processing SMILES: {smiles}")
+            
+            # Check if required directories exist (use /tmp for writable directories)
+            import os
+            required_dirs = ['/tmp/temp', '/tmp/artifacts']
+            for dir_name in required_dirs:
+                if not os.path.exists(dir_name):
+                    os.makedirs(dir_name, exist_ok=True)
+                    logger.info(f"Created directory: {dir_name}")
+            
             # Call the predictor function with the SMILES input
             plot_data, table_data, structure_image_base64 = predictor(smiles)
             
@@ -43,11 +54,22 @@ def index():
         except ValueError as e:
             logger.error(f"ValueError for SMILES {smiles}: {str(e)}")
             return render_template("index.html", error_message=str(e))
+        except ImportError as e:
+            logger.error(f"ImportError for SMILES {smiles}: {str(e)}")
+            return render_template("index.html", error_message=f"Missing dependency: {str(e)}")
+        except FileNotFoundError as e:
+            logger.error(f"FileNotFoundError for SMILES {smiles}: {str(e)}")
+            return render_template("index.html", error_message=f"Required file not found: {str(e)}")
+        except MemoryError as e:
+            logger.error(f"MemoryError for SMILES {smiles}: {str(e)}")
+            return render_template("index.html", error_message="Insufficient memory to process the request. Please try a simpler compound.")
         except Exception as e:
             logger.error(f"Unexpected error for SMILES {smiles}: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return render_template(
                 "index.html", 
-                error_message="An unexpected error occurred. Please try again or contact support."
+                error_message=f"An unexpected error occurred: {str(e)}. Please try again or contact support."
             )
 
     return render_template("index.html")
@@ -64,7 +86,16 @@ def not_found(error):
 @app.errorhandler(500)
 def internal_error(error):
     logger.error(f"Internal server error: {error}")
+    import traceback
+    logger.error(f"Traceback: {traceback.format_exc()}")
     return render_template("index.html", error_message="Internal server error. Please try again."), 500
+
+
+
+
+# def lambda_handler(event, context):
+#     """AWS Lambda handler using aws-wsgi"""
+#     return awsgi.response(app, event, context, base64_content_types={"image/png"})
 
 if __name__ == "__main__":
     # Production configuration
